@@ -13,12 +13,11 @@ from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 import pandas as pd
 
-# --- Настройки ---
-BASE_URL = "https://www.cv.ee/en/search"  # <-- ПРАВИЛЬНЫЙ URL
-MAX_PAGES = 3  # Для теста, потом можно увеличить
+BASE_URL = "https://www.cv.ee/en/search"
+MAX_PAGES = 3
+
 
 def setup_driver():
-    """Настраивает Selenium для работы в GitHub Actions (headless)."""
     options = Options()
     options.add_argument('--headless=new')
     options.add_argument('--no-sandbox')
@@ -35,46 +34,34 @@ def setup_driver():
     )
     return driver
 
+
 def parse_jobs(html):
-    """Извлекает вакансии из HTML."""
     soup = BeautifulSoup(html, "html.parser")
     jobs = []
-
-    # !!! СЕЛЕКТОРЫ НИЖЕ — ВРЕМЕННЫЕ, ИХ НУЖНО ЗАМЕНИТЬ !!!
-    # Сейчас они основаны на том, что мы видим на странице cv.ee/en/search:
-    # есть ссылки с href="/vacancy/..."
-    cards = soup.select("div, article")  # Пока собираем всё, потом уточним
+    cards = soup.select("div, article")
 
     for card in cards:
-        # Ищем ссылку на вакансию
         link = card.select_one("a[href*='/vacancy/']")
         if not link:
             continue
-
         title = link.get_text(strip=True)
         if not title:
             continue
-
-        # Пытаемся найти компанию и локацию (пока как N/A)
-        company = "N/A"
-        location = "N/A"
-
         jobs.append({
             "title": title,
-            "company": company,
-            "location": location,
+            "company": "N/A",
+            "location": "N/A",
             "url": "https://www.cv.ee" + link.get("href", "")
         })
 
-    # Убираем дубликаты по URL
     seen = set()
     unique_jobs = []
     for job in jobs:
         if job["url"] not in seen:
             seen.add(job["url"])
             unique_jobs.append(job)
-
     return unique_jobs
+
 
 def main():
     driver = setup_driver()
@@ -86,7 +73,6 @@ def main():
             print(f"Загрузка страницы {page}: {url}")
             driver.get(url)
 
-            # Ждём появления ссылок на вакансии
             try:
                 WebDriverWait(driver, 15).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, "a[href*='/vacancy/']"))
@@ -96,12 +82,10 @@ def main():
                 continue
 
             time.sleep(3)
-
             html = driver.page_source
             jobs = parse_jobs(html)
             print(f"  Найдено уникальных вакансий: {len(jobs)}")
             all_jobs.extend(jobs)
-
             time.sleep(2)
 
     finally:
@@ -118,6 +102,7 @@ def main():
     csv_path = f"data/cv_ee_jobs_{date_str}.csv"
     df.to_csv(csv_path, index=False, encoding="utf-8-sig")
     print(f"CSV сохранён: {csv_path}")
+
 
 if __name__ == "__main__":
     main()
