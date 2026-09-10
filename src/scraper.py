@@ -40,7 +40,6 @@ def setup_driver():
 
 def extract_total(driver):
     """Достаёт число из 'Show 3977 job ads' или из заголовка '(3977):'."""
-    # Способ 1: кнопка "Show X job ads"
     try:
         btn = WebDriverWait(driver, 20).until(
             EC.presence_of_element_located(
@@ -55,7 +54,6 @@ def extract_total(driver):
     except Exception as e:
         print(f"  Не нашли кнопку: {e}")
 
-    # Способ 2: заголовок "(3977):"
     try:
         total_elem = driver.find_element(
             By.CSS_SELECTOR, '[data-testid="search-results-total"]'
@@ -74,7 +72,6 @@ def extract_total(driver):
 def main():
     driver = setup_driver()
     total = None
-
     try:
         print(f"Загрузка: {BASE_URL}")
         driver.get(BASE_URL)
@@ -88,7 +85,6 @@ def main():
     today = datetime.now().strftime("%Y-%m-%d")
     print(f"Сегодня {today}: {total} вакансий")
 
-    # --- Обновляем историю ---
     os.makedirs("data", exist_ok=True)
 
     if os.path.exists(HISTORY_FILE):
@@ -96,23 +92,18 @@ def main():
     else:
         history = pd.DataFrame(columns=["date", "total_jobs"])
 
-    # Убираем сегодняшнюю запись, если уже есть (защита от повторов)
     history = history[history["date"] != today]
-
     new_row = pd.DataFrame([{"date": today, "total_jobs": total}])
     history = pd.concat([history, new_row], ignore_index=True)
     history = history.sort_values("date").reset_index(drop=True)
-
     history.to_csv(HISTORY_FILE, index=False, encoding="utf-8-sig")
     print(f"История сохранена: {HISTORY_FILE} ({len(history)} записей)")
 
-    # --- Строим график ---
     if len(history) < 2:
         print("Для графика нужно минимум 2 точки. Пока пропускаем.")
         return
 
     history["date"] = pd.to_datetime(history["date"])
-
     plt.figure(figsize=(12, 6))
     plt.plot(history["date"], history["total_jobs"],
              marker="o", linewidth=2, color="steelblue")
@@ -122,12 +113,8 @@ def main():
     plt.grid(True, alpha=0.3)
     plt.xticks(rotation=45, ha="right")
     plt.tight_layout()
-
-    plot_path = "data/cv_ee_chart.png"
-    plt.savefig(plot_path)
-    print(f"График сохранён: {plot_path}")
-    print("\nПоследние 5 записей:")
-    print(history.tail(5).to_string(index=False))
+    plt.savefig("data/cv_ee_chart.png")
+    print("График сохранён: data/cv_ee_chart.png")
 
 
 if __name__ == "__main__":
