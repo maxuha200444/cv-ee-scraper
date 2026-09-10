@@ -13,6 +13,8 @@ from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 import pandas as pd
 
+print(">>> ЗАПУЩЕНА ВЕРСИЯ С SELENIUM <<<")
+
 BASE_URL = "https://www.cv.ee/en/search"
 MAX_PAGES = 3
 
@@ -81,8 +83,13 @@ def main():
                 print(f"  Не дождались загрузки вакансий на странице {page}")
                 continue
 
-            time.sleep(3)
+            time.sleep(5)
             html = driver.page_source
+            os.makedirs("data", exist_ok=True)
+            with open(f"data/debug_page_{page}.html", "w", encoding="utf-8") as f:
+                f.write(html)
+            print(f"  Отладка сохранена: data/debug_page_{page}.html")
+
             jobs = parse_jobs(html)
             print(f"  Найдено уникальных вакансий: {len(jobs)}")
             all_jobs.extend(jobs)
